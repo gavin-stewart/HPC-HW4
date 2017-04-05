@@ -1,17 +1,21 @@
 /******************************************************************************
-* FILE: mpi_bug4.c
+* FILE: mpi_bug3.c
 * DESCRIPTION: 
-*   This program gives the wrong result for Final sum - compare to mpi_array.
-*   The number of MPI tasks must be divisible by 4.
-*   Hint: Every process needs to be included in a collective communication call.
-* AUTHOR: Blaise Barney 
-* LAST REVISED: 01/24/09
+*   This program has a bug.
+*  Hint: The MPI environment isn't initialized and terminated properly.
+* SOURCE: Blaise Barney 
+* LAST REVISED: 04/13/05
 ******************************************************************************/
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #define  ARRAYSIZE	16000000
 #define  MASTER		0
+
+/*
+ * Fixing this bug only required putting an the MPI_Init and MPI_Finalize 
+ * commands at the beginning and end of the program.
+ */
 
 float  data[ARRAYSIZE];
 
@@ -70,6 +74,7 @@ if (taskid == MASTER){
     }
 
   /* Get final sum and print sample results */  
+  MPI_Reduce(&mysum, &sum, 1, MPI_FLOAT, MPI_SUM, MASTER, MPI_COMM_WORLD);
   printf("Sample results: \n");
   offset = 0;
   for (i=0; i<numtasks; i++) {
@@ -105,8 +110,7 @@ if (taskid > MASTER) {
 
   } /* end of non-master */
 
-
-MPI_Finalize();
+  MPI_Finalize();
 
 }   /* end of main */
 

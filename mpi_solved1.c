@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// The error is that the thread0 sends a message with tag 0, but thread1 
+// expects a message with tag 1.  To solve this, we set all tags to a constant
+#define TAG 999
+
 int main (int argc, char *argv[])
 {
 int numtasks, rank, dest, tag, source, rc, count;
@@ -25,7 +29,7 @@ if (rank == 0) {
     printf("Numtasks=%d. Only 2 needed. Ignoring extra...\n",numtasks);
   dest = rank + 1;
   source = dest;
-  tag = rank;
+  tag = TAG;
   rc = MPI_Send(&outmsg, 1, MPI_CHAR, dest, tag, MPI_COMM_WORLD);
   printf("Sent to task %d...\n",dest);
   rc = MPI_Recv(&inmsg, 1, MPI_CHAR, source, tag, MPI_COMM_WORLD, &Stat);
@@ -35,7 +39,7 @@ if (rank == 0) {
 else if (rank == 1) {
   dest = rank - 1;
   source = dest;
-  tag = rank;
+  tag = TAG;
   rc = MPI_Recv(&inmsg, 1, MPI_CHAR, source, tag, MPI_COMM_WORLD, &Stat);
   printf("Received from task %d...\n",source);
   rc = MPI_Send(&outmsg, 1, MPI_CHAR, dest, tag, MPI_COMM_WORLD);

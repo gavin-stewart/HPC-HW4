@@ -1,16 +1,22 @@
 /******************************************************************************
-* FILE: mpi_bug3.c
+* FILE: mpi_bug4.c
 * DESCRIPTION: 
-*   This program has a bug.
-*  Hint: The MPI environment isn't initialized and terminated properly.
-* SOURCE: Blaise Barney 
-* LAST REVISED: 04/13/05
+*   This program gives the wrong result for Final sum - compare to mpi_array.
+*   The number of MPI tasks must be divisible by 4.
+*   Hint: Every process needs to be included in a collective communication call.
+* AUTHOR: Blaise Barney 
+* LAST REVISED: 01/24/09
 ******************************************************************************/
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #define  ARRAYSIZE	16000000
 #define  MASTER		0
+
+/*
+ * The buggy version of this code did not include the master task in the Reduce
+ * call.  Including it solves the problem.
+ */
 
 float  data[ARRAYSIZE];
 
@@ -23,6 +29,7 @@ float update(int myoffset, int chunk, int myid);
 MPI_Status status;
 
 /***** Initializations *****/
+MPI_Init(&argc, &argv);
 MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 if (numtasks % 4 != 0) {
    printf("Quitting. Number of MPI tasks must be divisible by 4.\n");
@@ -67,8 +74,9 @@ if (taskid == MASTER){
       MPI_COMM_WORLD, &status);
     }
 
+    MPI_Reduce(&mysum, &sum, 1, MPI_FLOAT, MPI_SUM, MASTER, MPI_COMM_WORLD);
+
   /* Get final sum and print sample results */  
-  MPI_Reduce(&mysum, &sum, 1, MPI_FLOAT, MPI_SUM, MASTER, MPI_COMM_WORLD);
   printf("Sample results: \n");
   offset = 0;
   for (i=0; i<numtasks; i++) {
@@ -105,6 +113,7 @@ if (taskid > MASTER) {
   } /* end of non-master */
 
 
+MPI_Finalize();
 
 }   /* end of main */
 
