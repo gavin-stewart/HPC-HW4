@@ -15,6 +15,18 @@
 
 #define MSGSIZE 2000
 
+/*
+ *  The problem with this program is that Task 0 posts send call more 
+ *  frequently than Task 1 posts receive calls.  The sends fill up the
+ *  send buffer on the machine for Task 0, which leads to implementation 
+ *  specific behavior (for intel compilers, Task 0 seems to wait until the 
+ *  buffer empties before trying to send again, leading to the uneven timings).
+ *
+ *  One way to fix this bug is to make Task 0 wait for Task 1 to post a receive
+ *  before continuing.  This amounts to replacing the MPI_Send call with an
+ *  MPI_Ssend call.
+ */
+
 int main (int argc, char *argv[])
 {
 int        numtasks, rank, i, tag=111, dest=1, source=0, count=0;
@@ -41,7 +53,7 @@ if (rank == 0) {
 
   start = MPI_Wtime();
   while (1) {
-    MPI_Send(data, MSGSIZE, MPI_BYTE, dest, tag, MPI_COMM_WORLD);
+    MPI_Ssend(data, MSGSIZE, MPI_BYTE, dest, tag, MPI_COMM_WORLD);
     count++;
     if (count % 10 == 0) {
       end = MPI_Wtime();
