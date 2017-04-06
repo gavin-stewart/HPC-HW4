@@ -48,13 +48,12 @@ T1 = MPI_Wtime();     /* start the clock */
 *  store each request as it is captured in the reqs() array.         */
 if (rank < 2) {
   nreqs = REPS*2;
+  offset = 0; // Offset should always start at 0 to avoid buffer overflow
   if (rank == 0) {
     src = 1;
-    offset = 0;
     }
   if (rank == 1) {
     src = 0;
-    offset = REPS;
     }
   dest = src;
 
@@ -63,6 +62,7 @@ if (rank < 2) {
     MPI_Isend(&rank, 1, MPI_INT, dest, tag1, COMM, &reqs[offset]);
     MPI_Irecv(&buf, 1, MPI_INT, src, tag1, COMM, &reqs[offset+1]);
     offset += 2;
+    
     if ((i+1)%DISP == 0)
       printf("Task %d has done %d isends/irecvs\n", rank, i+1);
     }
@@ -100,7 +100,9 @@ if (rank > 1) {
   }
 
 /* Wait for all non-blocking operations to complete and record time */
-MPI_Waitall(nreqs, reqs, stats);
+//Task rank 2 has no data in reqs!  Have it avoid the waitall
+if(rank != 2)
+    MPI_Waitall(nreqs, reqs, stats);
 T2 = MPI_Wtime();     /* end time */
 MPI_Barrier(COMM);
 
