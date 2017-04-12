@@ -32,17 +32,14 @@ int main( int argc, char *argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_cores);
 
-  if(argc < 2) {
-    if(rank == 0) {
-      printf("Usage: %s ints_per_thread\n", argv[0]);
-    }
-    MPI_Finalize();
-    return EXIT_SUCCESS;
-  }
 
   /* Number of random numbers per processor (this should be increased
    * for actual tests or could be passed in through the command line */
-  N = atoi(argv[1]);
+  if(argc < 2) {
+    N = 100;
+  } else {
+    N = atoi(argv[1]);
+  }
 
   sprintf(filename, "sorted_r%d_N%d.txt", rank, N);
 
