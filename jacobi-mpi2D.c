@@ -14,11 +14,18 @@
 
 //#define PRINT_GRID
 
+/*
+ * A data structure which holds the MPI_Request object as well as the buffer
+ * used to send or receive the data.
+ */
 typedef struct Ghost_layer_request {
     double *data;
     MPI_Request request;
 } Ghost_layer_request;
 
+/*
+ * Data about the location and problem for a specific MPI core.
+ */
 typedef struct Core_data {
     int Nl;
     int row;
@@ -27,6 +34,10 @@ typedef struct Core_data {
     double h_sqr;
 } Core_data;
 
+/*
+ * A structure containing information about a node and the communication 
+ * requests (either send or receive) it makes.
+ */
 typedef struct Ghost_data {
     Core_data *cd;
     Ghost_layer_request *top;
@@ -161,6 +172,10 @@ int main(int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
+/*
+ * Using the data in u, all cores perform a Jacobi update and put the new 
+ * iterate in unew.
+ */
 void jacobi_update(double *u, double *unew, Core_data *cd) {
     int i,j,index,Nl;
     double h_sqr;
@@ -220,6 +235,9 @@ void jacobi_update(double *u, double *unew, Core_data *cd) {
     free(send_layers);
 }
 
+/*
+ * All cores compute the residual for the current iterate u.
+ */
 double compute_residual(double* u, Core_data *cd) { 
     double resid, tmp, h_sqr;
     int i, j, index, Nl;
@@ -293,11 +311,19 @@ double compute_residual(double* u, Core_data *cd) {
     return resid;
 }
 
+/*
+ * Send a layer (packaged as a Ghost_layer_request) to the core with rank dest.
+ * This function uses nonblocking sends.
+ */
 void send_layer(int dest, int Nl, Ghost_layer_request *glr) {
     MPI_Isend(glr->data, Nl, MPI_DOUBLE, dest, TAG, MPI_COMM_WORLD, 
                 &(glr->request));
 }
 
+/*
+ * Determine what data the core needs to send and make nonblocking calls to \
+ * send that data.
+ */
 void send_layer_data(double *u, Core_data *cd, Ghost_data *gd){
     setup_ghost_data(gd, cd);
     int dest, row, column, cpe, Nl, i;
@@ -339,6 +365,10 @@ void send_layer_data(double *u, Core_data *cd, Ghost_data *gd){
     }
 }
 
+/*
+ * Based on the core's position and the grid size, initialize the needed 
+ * Ghost_layer_requests and their data buffers.
+ */
 void setup_ghost_data(Ghost_data *gd, Core_data *cd){
     int Nl;
     gd->cd = cd;
@@ -363,6 +393,10 @@ void setup_ghost_data(Ghost_data *gd, Core_data *cd){
     }
 }
 
+/*
+ * Request all of the data the needed to determine the ghost layers for the
+ * Jacobi method.  The requests are placed in the Ghost_data object gd.
+ */
 void request_layer_data(Ghost_data *gd, Core_data *cd) {
     setup_ghost_data(gd, cd);
     int src, row, column, cpe, Nl;
@@ -388,12 +422,17 @@ void request_layer_data(Ghost_data *gd, Core_data *cd) {
     }
 }
 
+/*
+ * Request a ghost layer from src, and store the request data in glr.
+ */
 void request_layer(int src, int Nl, Ghost_layer_request *glr) {
     MPI_Irecv(glr->data, Nl, MPI_DOUBLE, src, TAG, MPI_COMM_WORLD, 
                 &(glr->request));
 }
 
-
+/*
+ * Write the data in the relevant buffers of gd to the edges of u.
+ */
 void update_ghost_layers(double *u, Ghost_data *gd) {
     Core_data *cd = gd->cd;
     int i, Nl;
@@ -424,6 +463,12 @@ void update_ghost_layers(double *u, Ghost_data *gd) {
     }
 }
 
+/*
+ * Wait for the requests in gd to finish sending/receiving.  Note that only the 
+ * requests the core needs to make based on its position will be considered (eg
+ * a core on the top edge will not wait for a nonexistant top request to 
+ * finish).
+ */
 void wait_for_request(Ghost_data *gd) {
     Core_data *cd = gd->cd;
     if(!is_top(cd)) {
@@ -440,6 +485,9 @@ void wait_for_request(Ghost_data *gd) {
     }
 }
 
+/*
+ * Free the MPI_request and data buffer associated with glr.
+ */
 void free_layer_request(Ghost_layer_request * glr) {
     if(glr->request != MPI_REQUEST_NULL) {
         MPI_Request_free(&(glr->request));
@@ -447,6 +495,10 @@ void free_layer_request(Ghost_layer_request * glr) {
     free(glr->data);
 }
 
+/*
+ * Print the grid (physical and ghost layers) for a given core.  This method is
+ * used for debugging only.
+ */
 void print_grid(double *u, Core_data *cd) {
     int Nl = cd->Nl;
     int i,j;
@@ -459,6 +511,9 @@ void print_grid(double *u, Core_data *cd) {
     }
 }
 
+/*
+ * Free all Ghost_layer_requests in gd.
+ */
 void free_request_data(Ghost_data *gd) {
     Core_data *cd = gd->cd;
     if(!is_top(cd)) {

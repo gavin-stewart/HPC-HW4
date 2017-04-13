@@ -114,11 +114,9 @@ int main( int argc, char *argv[])
   num_to_recv = malloc(num_cores * sizeof(int));
   MPI_Alltoall(num_to_send, 1, MPI_INT, num_to_recv, 1, 
                MPI_INT, MPI_COMM_WORLD);
-  total_to_recv = 0;
-  for(i = 0; i < num_cores; i++) {
-    total_to_recv += num_to_recv[i];
-  }
 
+  //Compute how many ints this core will receive, and the offsets to use for 
+  //sending and receiving.
   send_offsets = calloc(num_cores, sizeof(int));
   recv_offsets = calloc(num_cores, sizeof(int));
 
@@ -153,6 +151,7 @@ int main( int argc, char *argv[])
     printf("%d ints sorted in %f seconds.\n", N * num_cores, t_end - t_start);
   }
 
+  // Memory cleanup.
   free(vec);
   free(samples);
   if(rank == 0) {
